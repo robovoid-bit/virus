@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Multi-Shape Cloner</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Base template elements hidden from view */
+        .templates {
+            display: none;
+        }
+
+        /* Universal style for clones */
+        .clone {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none; /* Keeps the page responsive */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 35 Different Base Shapes/Objects -->
+    <div class="templates">
+        <!-- Circles (Sizes 1-5) -->
+        <div class="shape-0" style="width: 20px; height: 20px; border-radius: 50%;"></div>
+        <div class="shape-1" style="width: 40px; height: 40px; border-radius: 50%;"></div>
+        <div class="shape-2" style="width: 60px; height: 60px; border-radius: 50%;"></div>
+        <div class="shape-3" style="width: 80px; height: 80px; border-radius: 50%;"></div>
+        <div class="shape-4" style="width: 100px; height: 100px; border-radius: 50%;"></div>
+
+        <!-- Squares (Sizes 1-5) -->
+        <div class="shape-5" style="width: 20px; height: 20px;"></div>
+        <div class="shape-6" style="width: 40px; height: 40px;"></div>
+        <div class="shape-7" style="width: 60px; height: 60px;"></div>
+        <div class="shape-8" style="width: 80px; height: 80px;"></div>
+        <div class="shape-9" style="width: 100px; height: 100px;"></div>
+
+        <!-- Rounded Rectangles (Sizes 1-5) -->
+        <div class="shape-10" style="width: 30px; height: 20px; border-radius: 5px;"></div>
+        <div class="shape-11" style="width: 60px; height: 40px; border-radius: 10px;"></div>
+        <div class="shape-12" style="width: 90px; height: 60px; border-radius: 15px;"></div>
+        <div class="shape-13" style="width: 120px; height: 80px; border-radius: 20px;"></div>
+        <div class="shape-14" style="width: 150px; height: 100px; border-radius: 25px;"></div>
+
+        <!-- Pill Shapes (Sizes 1-5) -->
+        <div class="shape-15" style="width: 40px; height: 20px; border-radius: 50px;"></div>
+        <div class="shape-16" style="width: 80px; height: 40px; border-radius: 50px;"></div>
+        <div class="shape-17" style="width: 120px; height: 60px; border-radius: 50px;"></div>
+        <div class="shape-18" style="width: 160px; height: 80px; border-radius: 50px;"></div>
+        <div class="shape-19" style="width: 200px; height: 100px; border-radius: 50px;"></div>
+
+        <!-- Triangles (Using borders, Sizes 1-5) -->
+        <div class="shape-20" style="width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid;"></div>
+        <div class="shape-21" style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-bottom: 40px solid;"></div>
+        <div class="shape-22" style="width: 0; height: 0; border-left: 30px solid transparent; border-right: 30px solid transparent; border-bottom: 60px solid;"></div>
+        <div class="shape-23" style="width: 0; height: 0; border-left: 40px solid transparent; border-right: 40px solid transparent; border-bottom: 80px solid;"></div>
+        <div class="shape-24" style="width: 0; height: 0; border-left: 50px solid transparent; border-right: 50px solid transparent; border-bottom: 100px solid;"></div>
+
+        <!-- Diamonds (Using rotate, Sizes 1-5) -->
+        <div class="shape-25" style="width: 20px; height: 20px; transform: rotate(45deg);"></div>
+        <div class="shape-26" style="width: 40px; height: 40px; transform: rotate(45deg);"></div>
+        <div class="shape-27" style="width: 60px; height: 60px; transform: rotate(45deg);"></div>
+        <div class="shape-28" style="width: 80px; height: 80px; transform: rotate(45deg);"></div>
+        <div class="shape-29" style="width: 100px; height: 100px; transform: rotate(45deg);"></div>
+
+        <!-- Ovals (Sizes 1-5) -->
+        <div class="shape-30" style="width: 20px; height: 40px; border-radius: 50%;"></div>
+        <div class="shape-31" style="width: 40px; height: 80px; border-radius: 50%;"></div>
+        <div class="shape-32" style="width: 60px; height: 120px; border-radius: 50%;"></div>
+        <div class="shape-33" style="width: 80px; height: 160px; border-radius: 50%;"></div>
+        <div class="shape-34" style="width: 100px; height: 200px; border-radius: 50%;"></div>
+    </div>
+
+    <script>
+        // Grab all 35 template elements
+        const templates = [];
+        for (let i = 0; i < 35; i++) {
+            templates.push(document.querySelector(`.shape-${i}`));
+        }
+
+        // Generate a random HEX color
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Clone mechanism running at maximum execution speed
+        function spawnClone() {
+            // Pick one of the 35 base clones randomly
+            const randomTemplate = templates[Math.floor(Math.random() * 35)];
+            const clone = randomTemplate.cloneNode(true);
+            
+            // Generate random positions based on viewport window
+            const posX = Math.random() * window.innerWidth;
+            const posY = Math.random() * window.innerHeight;
+            const color = getRandomColor();
+
+            // Apply universal positioning and unique color styles
+            clone.classList.add('clone');
+            clone.style.left = `${posX}px`;
+            clone.style.top = `${posY}px`;
+
+            // Handle color application for regular shapes vs CSS border triangles
+            if (clone.style.width === '0px') {
+                clone.style.borderBottomColor = color;
+            } else {
+                clone.style.backgroundColor = color;
+            }
+
+            // Instantly append to the screen
+            document.body.appendChild(clone);
+        }
+
+        // Loop execution structure mimicking 0.001s intervals via requestAnimationFrame batching
+        function instantLoop() {
+            // Browser intervals floor at ~4ms. To bypass this restriction and hit true 1ms speed,
+            // we spawn multiple clones per frame calculation to match the target frequency.
+            for (let i = 0; i < 16; i++) {
+                spawnClone();
+            }
+            requestAnimationFrame(instantLoop);
+        }
+
+        // Fire loop immediately
+        instantLoop();
+    </script>
+</body>
+</html>
