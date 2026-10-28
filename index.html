@@ -3,343 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instant Multi-Image Cloner</title>
+    <title>Custom JS Multi-Threaded CPU Benchmark</title>
     <style>
         body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e24;
+            color: #fff;
             margin: 0;
-            padding: 0;
-            background-color: #111;
-            overflow: hidden;
-            width: 100vw;
-            height: 100vh;
-            position: relative;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-
-        /* Base template container hidden from view */
-        .templates {
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: #2a2a35;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 { margin-bottom: 5px; color: #4f46e5; }
+        .status { color: #a1a1aa; margin-bottom: 20px; font-size: 0.95rem; }
+        #canvas-preview {
+            border: 2px solid #4f46e5;
+            background: #111;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            max-width: 100%;
+        }
+        .results-box {
+            background: #111116;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            margin-top: 15px;
+            border-left: 4px solid #10b981;
             display: none;
         }
-
-        /* Universal style for clones */
-        .clone {
-            position: absolute;
-            transform: translate(-50%, -50%);
-            pointer-events: none; /* Keeps the page responsive */
-            object-fit: cover;
+        .score-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #10b981;
+            margin-top: 5px;
         }
+        .loader {
+            border: 4px solid #3f3f46;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <!-- 35 Different Base Image Clones -->
-    <!-- Using Picsum Photos with unique IDs and standard parameters to simulate network requests -->
-<div><div id="noChrome">No Chromium browser!?<i> Firefox &amp; Edge is slow · Learn how to be fast…</i></div><p id="dsc"><strong>SilverBench</strong> · fast and easy multicore CPU benchmark that runs directly in your browser using JavaScript. Powered by a photon-mapping rendering engine, it measures raw CPU performance on a PC or mobile device. Choose from three modes—<i>Performance</i>, <i>Extreme</i>, or <i>Stress</i>. All tests run on the <strong>CPU only</strong> (no GPU required). The stress test is ideal for burn-in, heat, and stability checks.</p><div class="nochc"></div><p style="margin:0 0 9px;color:#666;">Check out the <a href="https://silver.urih.com/resources/">recent changes</a> we've made—and those still on the way—to keep SilverBench future-proof for online CPU, GPU, and WEB benchmarking.</p>
-<div id="silver">
-<div id="silverjs" style="position:relative;cursor:default">
-	<canvas id="myCanvas" width="720" height="405" position="absolute" style="display: block;"></canvas><canvas id="myCanvas9" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas8" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas7" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas6" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas5" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas4" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas3" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas2" width="720" height="405" position="absolute" style="display: none;"></canvas><canvas id="myCanvas1" width="720" height="405" position="absolute" style="display: none;"></canvas>
+<div class="container">
+    <h1>CoreBench v1.0</h1>
+    <div id="cpu-info" class="status">Detecting CPU cores...</div>
+    
+    <div id="loading-engine">
+        <div class="loader"></div>
+        <p id="progress-text">Initializing multithreaded rendering engine...</p>
+    </div>
 
-        <div id="silverDisplayHud" class="myDisplay" style="display:none;">
-            <div style="height:0px"><button type="button" class="myButton myButtonX" style="" onclick="onButtonCloseHud();" id="btnx">x</button></div>
-            <div style="height:390px"></div>
-            <div style="height:23px;text-align:right" id="ymBottomInfo"><span id="myBottomInfo" class="myBottomInfoClass" style=""></span></div>
-        </div>
+    <canvas id="canvas-preview" width="300" height="300"></canvas>
 
-        <div id="silverDisplayMenuDoneSubmit" class="myDisplay" style="display:none;">
-            <div style="height:0px"><button type="button" class="myButton myButtonX" style="" onclick="onButtonCloseMenu();">x</button></div>
-            <div style="height:185px"><span id="scoreInSubmit" class="myScore" style="">...</span></div>
-            <div style="height:145px">
-                <label for="mycpu" accesskey="c" class="myLabel">CPU:</label>
-                <p><select id="mycpu" name="mycpu" class="myCombo myCtrlBackground">
-                        <option value="other">Other / Not specified</option>
-                        <option value="Intel">Intel</option>
-                        <option value="AMD">AMD</option>
-                        <option value="ARM">ARM</option>
-                    </select></p>
-                <label for="myos" accesskey="o" class="myLabel">OS:</label>
-                <p><select id="myos" name="myos" class="myCombo myCtrlBackground">
-                        <option value="other">Other / Not specified</option>
-                        <option value="windows" selected="selected">Microsoft Windows</option>
-                        <option value="android">Android</option>
-                        <option value="macOS">macOS</option>
-                        <option value="iOS">iOS</option>
-                        <option value="Linux">Linux</option>
-                        <option value="BSD">BSD</option>
-                    </select></p>
-                <label for="mynickname" accesskey="n" class="myLabel">Nickname:</label>
-                <p><input id="mynickname" name="mynickname" type="text" maxlength="99" value="" class="myInput myCtrlBorder"><br></p>
-                <label for="mypc" accesskey="p" class="myLabel">PC / System description:</label>
-                <p><input id="mypc" name="mypc" type="text" maxlength="99" value="" class="myInput myCtrlBorder"><br></p>
-            </div>
-            <div style="height:43px"><button type="button" class="myButton" id="buttonSubmitForm" onclick="onButtonSubmitForm();" style="width:140px;height:40px;font-size:16px;">Submit</button></div>
-            <div style="height:25px"><span id="labelGauge" class="myLabelGauge" style=""></span></div>
-        </div>
-
-        <div id="silverDisplayMenuDone" class="myDisplay" style="display:none;">
-            <div style="height:0px"><button type="button" class="myButton myButtonX" style="" onclick="onButtonCloseMenu();">x</button></div>
-            <div style="height:185px"><span id="scoreInDone" class="myScore" style="">...</span></div>
-            <div style="height:70px"><button type="button" class="myButton" id="buttonSubmit" onclick="onButtonSubmit();" style="width:200px;height:59px;font-size:32px;">Submit</button></div>
-            <div style="height:43px"><button type="button" class="myButton" id="buttonRunAgain" onclick="onButtonRunAgain();" style="width:140px;height:30px;font-size:16px;">Run again</button></div>
-            <div style="height:43px"><button type="button" class="myButton" id="buttonMainMenu" onclick="onButtonMainMenu();" style="width:140px;height:30px;font-size:16px;">Main menu</button></div>
-        </div>
-
-        <div id="silverDisplayMenu" class="myDisplay" style="overflow:hidden;">
-            <div style="height:150px"><span style="text-shadow: 2px 2px 9px rgba(0,0,0,0.5);color:#EEBB11;font-size:110px;font-family:Arial;font-weight:bold;line-height:220px">SilverBench</span></div>
-            <div style="height:30px;text-align:right"><span style="text-shadow: 1px 1px 5px rgba(0,0,0,0.3);color:rgba(255, 255, 255, 0.7);font-size:21px;font-family:Arial;font-weight:700;line-height:0px;display:inline-block;margin-right:33px;">The .js edition · 2.1</span></div>
-            <div style="height:23px"><span id="detectingCores" class="mySmallText" style="">Benchmarked threads: 8</span></div>
-            <div style="height:70px" id="button1Div"><button type="button" class="myButton" id="buttonBenchmark" onclick="onButtonSilverBenchmark();" onmouseout="onMouseOutButton();" style="width:200px;height:59px;font-size:32px;">Benchmark</button></div>
-            <div style="height:43px"><button type="button" class="myButton" id="buttonExtreme" onclick="onButtonSilverBenchmarkExtreme();" onmouseout="onMouseOutButton();" style="width:140px;height:30px;font-size:16px;">Extreme test</button></div>
-            <div style="height:43px"><button type="button" class="myButton" id="buttonStress" onclick="onButtonSilverBenchmarkStress();" onmouseout="onMouseOutButton();" style="width:140px;height:30px;font-size:16px;">Stress test</button></div>
-            <div style="height:25px"><span id="labelTip" class="myTipLabel" style=""></span></div>
-            <div style="height:25px;line-height:25px"><a href="https://silver.urih.com" style="font-family:Arial;font-weight:bold;text-decoration:none;color:#353ecd">© 2001–2025 urih.com</a></div>
-            <div id="fhd"><button id="fullhd" type="button" class="myButton myButtonX" onclick="dh();">FullHD showcase</button>&gt;</div>
-        </div>
-
-</div>
-<div id="ro" class="rotate">↻<br>For the best experience, please rotate your device…<br><a id="ignore" href="#">Ignore this useful recommendation and proceed anyway!</a><br>You've been warned :)</div>
+    <div id="results" class="results-box">
+        <div>Benchmark Complete!</div>
+        <div id="score" class="score-value">-- Keys/sec</div>
+        <div id="time-taken" style="color: #a1a1aa; font-size: 0.85rem; margin-top: 5px;"></div>
+    </div>
 </div>
 
-<div id="ajax" style="display: block;"><h2>Last 25 benchmarks · All tests</h2><ul class="iph"><li title="Type: Performance
-Score: 59,629
-Threads: 12
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">P59629</span><span style="width:12.012585663%">·</span><i title="2026-10-28 16:07:51">43s ago</i></li><li title="Type: Stress
-Score: 0.0157
-Threads: 12"><span class="hlp">S0.0157</span><span style="width:8.48814108174%">·</span><i title="2026-10-28 16:04:57">4m ago</i></li><li class="iphh" title="Type: Performance
-Score: 44,431
-Threads: 16
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">P44431<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:8.950866082%">·</span><i title="2026-10-28 16:01:19">7m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="lappy2">lappy2</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">r7</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 140,642
-Threads: 32
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">P140642<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:28.333094179%">·</span><i title="2026-10-28 16:01:10">7m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Anonymous">Anonymous</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">AMD 5950X PBO</textarea></span></div></li><li title="Type: Performance
-Score: 18,977
-Threads: 8
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">P18977</span><span style="width:3.82301964%">·</span><i title="2026-10-28 15:54:06">14m ago</i></li><li title="Type: Stress
-Score: 0.0082
-Threads: 8"><span class="hlp">S0.0082</span><span style="width:4.43329661765%">·</span><i title="2026-10-28 15:49:03">20m ago</i></li><li class="iphh" title="Type: Performance
-Score: 7,306
-Threads: 4
-CPU: Intel
-OS: Linux / Ubuntu"><span class="hlp">P7306<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:1.47183335%">·</span><i title="2026-10-28 15:44:27">24m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Anonymous">Anonymous</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">i5 5th gen 4 core laptop cpu</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 118,667
-Threads: 24
-CPU: Intel
-OS: Linux / Ubuntu"><span class="hlp">P118667<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:23.906111168%">·</span><i title="2026-10-28 15:43:32">25m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Anonymous">Anonymous</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">Get wrecked, Mac! AMD boys!</textarea></span></div></li><li title="Type: Stress
-Score: 0.0459
-Threads: 16"><span class="hlp">S0.0459</span><span style="width:24.81564816317%">·</span><i title="2026-10-28 15:41:20">27m ago</i></li><li title="Type: Performance
-Score: 6,868
-Threads: 9
-CPU: ARM
-OS: Android"><span class="hlp">P6868</span><span style="width:1.383595873%">·</span><i title="2026-10-28 15:36:52">32m ago</i></li><li title="Type: Stress
-Score: 0.0028
-Threads: 8"><span class="hlp">S0.0028</span><span style="width:1.51380861424%">·</span><i title="2026-10-28 15:35:29">33m ago</i></li><li title="Type: Stress
-Score: 0.014
-Threads: 8"><span class="hlp">S0.014</span><span style="width:7.5690430712%">·</span><i title="2026-10-28 15:35:16">33m ago</i></li><li class="iphh" title="Type: Performance
-Score: 70,899
-Threads: 8
-CPU: ARM
-OS: Mac OS X"><span class="hlp">P70899<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:14.282988326%">·</span><i title="2026-10-28 15:34:44">34m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="M5">M5</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">M5 Mac Air Base Model</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 94,731
-Threads: 24
-CPU: Intel
-OS: Microsoft Windows"><span class="hlp">P94731<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:19.084074065%">·</span><i title="2026-10-28 15:33:34">35m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Anonymous">Anonymous</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">msı katana ı7 14650hx</textarea></span></div></li><li class="iphh" title="Type: Extreme
-Score: 14,250
-Threads: 16
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">X14250<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:28.1332503928%">·</span><i title="2026-10-28 15:32:33">36m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Anonymous">Anonymous</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">9800x3d, 32gb 6000hz</textarea></span></div></li><li title="Type: Performance
-Score: 79,288
-Threads: 24
-CPU: Intel
-OS: Microsoft Windows"><span class="hlp">P79288</span><span style="width:15.972997904%">·</span><i title="2026-10-28 15:29:52">39m ago</i></li><li title="Type: Performance
-Score: 64,866
-Threads: 24
-CPU: Intel
-OS: Microsoft Windows"><span class="hlp">P64866</span><span style="width:13.067607734%">·</span><i title="2026-10-28 15:29:08">39m ago</i></li><li title="Type: Stress
-Score: 0.0082
-Threads: 16"><span class="hlp">S0.0082</span><span style="width:4.43329661765%">·</span><i title="2026-10-28 15:27:18">41m ago</i></li><li title="Type: Stress
-Score: 0.0264
-Threads: 12"><span class="hlp">S0.0264</span><span style="width:14.27305261021%">·</span><i title="2026-10-28 15:26:54">42m ago</i></li><li class="iphh" title="Type: Performance
-Score: 4,971
-Threads: 4
-CPU: AMD
-OS: Linux / Ubuntu"><span class="hlp">P4971<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:1.001434928%">·</span><i title="2026-10-28 15:26:06">42m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="brek">brek</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">chromebook</textarea></span></div></li><li class="iphh" title="Type: Extreme
-Score: 4,522
-Threads: 16
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">X4522<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:8.9276181218%">·</span><i title="2026-10-28 15:20:33">48m ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="bigoudy">bigoudy</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">Lenovo ThinkStation P720 dual GOLD 5122</textarea></span></div></li><li title="Type: Performance
-Score: 8,713
-Threads: 8
-CPU: Intel
-OS: Mac OS X"><span class="hlp">P8713</span><span style="width:1.755281136%">·</span><i title="2026-10-28 15:14:21">54m ago</i></li><li title="Type: Performance
-Score: 50,144
-Threads: 12
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">P50144</span><span style="width:10.101780937%">·</span><i title="2026-10-28 15:06:17">1h ago</i></li><li title="Type: Stress
-Score: 0.0309
-Threads: 32"><span class="hlp">S0.0309</span><span style="width:16.70595923499%">·</span><i title="2026-10-28 15:05:01">1h ago</i></li><li class="iphh" title="Type: Performance
-Score: 1,368
-Threads: 1
-CPU: AMD
-OS: Linux / Ubuntu"><span class="hlp">P1368<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:0.275591024%">·</span><i title="2026-10-28 15:01:02">1h ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Istvi5">Istvi5</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">acer Aspire 5051ANWXC</textarea></span></div></li></ul><i class="note">Results are shown in submission order.</i><h2 id="perf">All-time TOP 10 · Performance</h2><ul class="iph"><li class="iphh" title="Type: Performance
-Score: 282,941
-Threads: 16
-CPU: AMD
-OS: Linux / Ubuntu"><span class="hlp">P282941<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:57%">·</span><i title="2026-09-21 15:54:06">37d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="AZP3001">AZP3001</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">6.3Ghz</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 277,246
-Threads: 24
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">P277246<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:55.852711343%">·</span><i title="2026-09-12 15:28:42">46d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="DataOx">DataOx</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">Ryzen 9 7900x OC 6.15GHZ only 12 threads</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 263,712
-Threads: 16
-CPU: AMD
-OS: Linux / Ubuntu"><span class="hlp">P263712<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:53.126213592%">·</span><i title="2026-08-20 08:47:05">69d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="AZP3001">AZP3001</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">Industrial Cooler -87°C</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 263,357
-Threads: 16
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">P263357<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:53.054696916%">·</span><i title="2026-07-19 19:34:34">101d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="godofputers">godofputers</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">LN2 cooled CPU stack</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 247,365
-Threads: 32
-CPU: AMD
-OS: Linux / Ubuntu"><span class="hlp">P247365<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:49.833021725%">·</span><i title="2026-08-17 07:38:12">72d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="sumguy">sumguy</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">9950x3d2</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 242,414
-Threads: 64
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">P242414<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:48.835615906%">·</span><i title="2026-03-18 09:25:51">224d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Nante">Nante</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">9975wx</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 236,402
-Threads: 32
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">P236402<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:47.624465878%">·</span><i title="2026-08-07 14:26:55">82d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Furry_Smasher">Furry_Smasher</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">9950x3d2 5.65 all core</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 235,797
-Threads: 32
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">P235797<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:47.502585345%">·</span><i title="2025-12-27 07:04:54">305d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="braco">braco</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">ryzen 9 9950x3d &amp; rx9070xt</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 235,035
-Threads: 32
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">P235035<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:47.349076309%">·</span><i title="2025-12-22 13:16:18">310d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="braco">braco</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">ryzen 9 9950x3d &amp; rx9070xt</textarea></span></div></li><li class="iphh" title="Type: Performance
-Score: 229,287
-Threads: 32
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">P229287<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:46.191110514%">·</span><i title="2026-05-24 15:00:09">157d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Jay - ">Jay - </a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">9950x3D2</textarea></span></div></li></ul><i class="note">Performance scores (higher is better).</i><h2 id="extreme">All-time TOP 10 · Extreme</h2><ul class="iph"><li class="iphh" title="Type: Extreme
-Score: 26,608
-Threads: 79
-CPU: ARM
-OS: Linux / Ubuntu"><span class="hlp">X26608<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:52.5311948392%">·</span><i title="2022-04-24 06:06:11">5y+ ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Droidbot">Droidbot</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">Ampere Altra 80c</textarea></span></div></li><li class="iphh" title="Type: Extreme
-Score: 25,219
-Threads: 64
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">X25219<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:49.7889432768%">·</span><i title="2024-07-22 09:38:48">2y+ ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="AMD EPYC 9474F">AMD EPYC 9474F</a></span></div></li><li class="iphh" title="Type: Extreme
-Score: 24,281
-Threads: 16
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">X24281<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:47.937084405%">·</span><i title="2026-07-19 19:38:59">101d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="godofputers">godofputers</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">LN2 cooled CPU stack</textarea></span></div></li><li class="iphh" title="Type: Extreme
-Score: 23,590
-Threads: 128
-CPU: Other
-OS: Linux / Ubuntu"><span class="hlp">X23590<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:46.572868545%">·</span><i title="2021-07-08 21:20:16">5y+ ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Droidbot">Droidbot</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">EPYC 7J13*2</textarea></span></div></li><li class="iphh" title="Type: Extreme
-Score: 23,065
-Threads: 64
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">X23065<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:45.5363803748%">·</span><i title="2026-03-18 09:29:13">224d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Nante">Nante</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">9975wx</textarea></span></div></li><li title="Type: Extreme
-Score: 22,828
-Threads: 64
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">X22828</span><span style="width:45.068480002%">·</span><i title="2026-04-10 18:50:55">201d ago</i></li><li class="iphh" title="Type: Extreme
-Score: 22,728
-Threads: 64
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">X22728<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:44.8710536806%">·</span><i title="2026-05-29 18:37:47">152d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Anonymous">Anonymous</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">AMD Ryzen Threadripper 9975WX</textarea></span></div></li><li class="iphh" title="Type: Extreme
-Score: 21,743
-Threads: 64
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">X21743<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:42.9264044496%">·</span><i title="2025-12-08 07:13:00">324d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="jarda">jarda</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">AMD Ryzen Threadripper 9975WX</textarea></span></div></li><li class="iphh" title="Type: Extreme
-Score: 21,699
-Threads: 32
-CPU: AMD
-OS: Microsoft Windows"><span class="hlp">X21699<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:42.8395368674%">·</span><i title="2026-01-08 11:42:39">293d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Aux">Aux</a></span></div></li><li class="iphh" title="Type: Extreme
-Score: 21,679
-Threads: 48
-CPU: Other
-OS: Microsoft Windows"><span class="hlp">X21679<b onclick="si(this)" title="Tap to pin">i</b></span><span style="width:42.8000515992%">·</span><i title="2026-01-20 19:59:20">281d ago</i><div><span class="nickwrap"><a class="nourl" onclick="return nw(this,1)" rel="nofollow" href="" title="Mr_robobot">Mr_robobot</a></span><span class="dscrwrap"><textarea readonly="readonly" rows="10" cols="100" class="dscr">Threadripper 9960X 24-Cores</textarea></span></div></li></ul><i class="note">Extreme score (higher is better).</i><h2 id="stress">All-time TOP 10 · Stress</h2><ul class="iph"><li title="Type: Stress
-Score: 0.0827
-Threads: 64"><span class="hlp">S0.0827</span><span style="width:44.71141833006%">·</span><i title="2026-04-10 18:53:31">201d ago</i></li><li title="Type: Stress
-Score: 0.0813
-Threads: 64"><span class="hlp">S0.0813</span><span style="width:43.95451402294%">·</span><i title="2026-05-29 18:41:00">152d ago</i></li><li title="Type: Stress
-Score: 0.0812
-Threads: 32"><span class="hlp">S0.0812</span><span style="width:43.90044954459%">·</span><i title="2026-01-08 11:44:48">293d ago</i></li><li title="Type: Stress
-Score: 0.0811
-Threads: 64"><span class="hlp">S0.0811</span><span style="width:43.84638479787%">·</span><i title="2026-03-03 18:07:29">239d ago</i></li><li title="Type: Stress
-Score: 0.0804
-Threads: 64"><span class="hlp">S0.0804</span><span style="width:43.46793264431%">·</span><i title="2026-01-21 17:10:54">280d ago</i></li><li title="Type: Stress
-Score: 0.0802
-Threads: 32"><span class="hlp">S0.0802</span><span style="width:43.35980368761%">·</span><i title="2025-12-04 14:17:39">328d ago</i></li><li title="Type: Stress
-Score: 0.0796
-Threads: 48"><span class="hlp">S0.0796</span><span style="width:43.0354160124%">·</span><i title="2026-01-20 20:01:56">281d ago</i></li><li title="Type: Stress
-Score: 0.0795
-Threads: 32"><span class="hlp">S0.0795</span><span style="width:42.98135153405%">·</span><i title="2026-10-25 05:07:42">3d ago</i></li><li title="Type: Stress
-Score: 0.0793
-Threads: 32"><span class="hlp">S0.0793</span><span style="width:42.87322230898%">·</span><i title="2026-05-21 10:08:14">160d ago</i></li><li title="Type: Stress
-Score: 0.0789
-Threads: 32"><span class="hlp">S0.0789</span><span style="width:42.65696385884%">·</span><i title="2026-09-04 00:23:11">55d ago</i></li></ul><i class="note">Stress score (higher is better). Scores are collected automatically after the 10th rendered frame.</i></div><h2>Drill down…</h2><p>See more · <a href="https://silver.urih.com/results/">Last 100 benchmarks</a></p><p>See the best of the best · <a href="https://silver.urih.com/top/">Top charts</a> · <a href="https://silver.urih.com/top/#perf">Performance</a> · <a href="https://silver.urih.com/top/#extreme">Extreme</a> · <a href="https://silver.urih.com/top/#stress">Stress</a></p><p>See system statistics · <a href="https://silver.urih.com/systems/">Overview</a> · <a href="https://silver.urih.com/systems/#os">OS</a> · <a href="https://silver.urih.com/systems/#cpu">CPU</a> · <a href="https://silver.urih.com/systems/#threads">Threads</a></p><br><p>Your feedback is very important to us, so please use the <i>Comment box</i> to leave a message. Thanks!</p><div class="back">Refresh: <i title="silver.urih.com/">silver.urih.com/</i><div><a title="Refresh" href="https://silver.urih.com/">Refresh</a></div></div>							</div>
+<script>
+// 1. CREATE INLINE WEB WORKER SCRIPT AS A BLOB
+// This allows everything to live inside one single HTML file instead of separate files.
+const workerCode = `
+    self.onmessage = function(e) {
+        const { startY, endY, width, height, iterations } = e.data;
+        const totalPixels = width * (endY - startY);
+        const buffer = new Uint8ClampedArray(totalPixels * 4);
+        
+        let index = 0;
+        let opsPerformed = 0;
 
-    <script>
-        // Store base template elements and their clean URLs
-        const templates = [];
-        for (let i = 0; i < 35; i++) {
-            templates.push(document.querySelector(`.shape-${i}`));
-        }
+        // Mathematical Mandelbrot fractal rendering loop to stress-test raw math CPU throughput
+        for (let y = startY; y < endY; y++) {
+            for (let x = 0; x < width; x++) {
+                let c_re = (x - width / 2.0) * 4.0 / width;
+                let c_im = (y - height / 2.0) * 4.0 / height;
+                let x_val = 0, y_val = 0;
+                let iter = 0;
+                
+                while (x_val*x_val + y_val*y_val <= 4 && iter < iterations) {
+                    let x_new = x_val*x_val - y_val*y_val + c_re;
+                    y_val = 2*x_val*y_val + c_im;
+                    x_val = x_new;
+                    iter++;
+                    opsPerformed += 5; // Track algorithmic weight
+                }
 
-        // Generate a random HEX color to tint the image background/border
-        function getRandomColor() {
-            const letters = '0123456789ABCDEF';
-            let color = '#';
-            for (let i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
+                // Map results to visual pixels on the canvas
+                let r = (iter % 8) * 32;
+                let g = (iter % 16) * 16;
+                let b = (iter % 32) * 8;
+
+                buffer[index++] = r;   // R
+                buffer[index++] = g;   // G
+                buffer[index++] = b;   // B
+                buffer[index++] = 255; // Alpha
             }
-            return color;
         }
 
-        // Clone mechanism with forced loading delay via unique query parameters
-        function spawnClone() {
-            const randomTemplate = templates[Math.floor(Math.random() * 35)];
-            const clone = randomTemplate.cloneNode(true);
-            
-            // Generate random screen positions
-            const posX = Math.random() * window.innerWidth;
-            const posY = Math.random() * window.innerHeight;
-            const color = getRandomColor();
+        // Return processed chunk back to the master window thread
+        self.postMessage({ buffer, startY, endY, opsPerformed }, [buffer.buffer]);
+    };
+`;
 
-            // Set layout styling
-            clone.classList.add('clone');
-            clone.style.left = `${posX}px`;
-            clone.style.top = `${posY}px`;
-            
-            // Random tinted background color while the image asset loads
-            clone.style.backgroundColor = color;
+const blob = new Blob([workerCode], { type: 'application/javascript' });
+const workerUrl = URL.createObjectURL(blob);
 
-            // FORCE LOADING DELAY: 
-            // Adding a completely unique timestamp parameter tells the browser 
-            // to bypass cache and fetch it freshly every single time over the internet.
-            const baseSrc = randomTemplate.getAttribute('src');
-            clone.src = `${baseSrc}?cachebust=${Date.now()}-${Math.random()}`;
+// 2. MAIN APPLICATION CORE
+window.addEventListener('DOMContentLoaded', () => {
+    // Check local processing units available
+    const threads = navigator.hardwareConcurrency || 4;
+    document.getElementById('cpu-info').innerText = `Detected ${threads} Logical CPU Threads. Stress testing all cores...`;
 
-            // Instantly append clone onto the page layout
-            document.body.appendChild(clone);
-        }
+    const canvas = document.getElementById('canvas-preview');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Test parameters
+    const iterations = 5000; // Workload density per pixel
+    const chunkSize = Math.floor(height / threads);
+    let completedWorkers = 0;
+    let totalOps = 0;
+    
+    const startTime = performance.now();
+    
+    // Spawn threads automatically matching CPU boundaries
+    for (let i = 0; i < threads; i++) {
+        const worker = new Worker(workerUrl);
+        
+        const startY = i * chunkSize;
+        // Ensure the last worker cleans up any remainder rows from uneven division
+        const endY = (i === threads - 1) ? height : (i + 1) * chunkSize;
 
-        // High frequency execution loop (batch processing for ~0.001s feel)
-        function instantLoop() {
-            // Adjust the loop count here if you want to spawn even more items per frame
-            for (let i = 0; i < 16; i++) {
-                spawnClone();
+        worker.postMessage({ startY, endY, width, height, iterations });
+
+        // Handle calculated outputs sent from processing nodes
+        worker.onmessage = function(e) {
+            const { buffer, startY, endY, opsPerformed } = e.data;
+            totalOps += opsPerformed;
+
+            // Draw computed chunk onto main user interface 
+            const imgData = ctx.createImageData(width, endY - startY);
+            imgData.data.set(buffer);
+            ctx.putImageData(imgData, 0, startY);
+
+            completedWorkers++;
+            worker.terminate(); // Clean up thread tracking variables dynamically
+
+            // Finalise metric scoring arrays once complete
+            if (completedWorkers === threads) {
+                const endTime = performance.now();
+                const timeTakenSec = (endTime - startTime) / 1000;
+                
+                // Calculate an architectural absolute processing raw throughput score
+                const finalScore = Math.round(totalOps / timeTakenSec);
+
+                // Update UI layout components
+                document.getElementById('loading-engine').style.display = 'none';
+                const resBox = document.getElementById('results');
+                resBox.style.display = 'block';
+                document.getElementById('score').innerText = `${finalScore.toLocaleString()} Ops/Sec`;
+                document.getElementById('time-taken').innerText = `Completed in ${timeTakenSec.toFixed(3)} seconds`;
+                
+                // Revoke object allocation references
+                URL.revokeObjectURL(workerUrl);
             }
-            requestAnimationFrame(instantLoop);
-        }
+        };
+    }
+});
+</script>
 
-        // Fire loop immediately
-        instantLoop();
-    </script>
 </body>
 </html>
